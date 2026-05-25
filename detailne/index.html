@@ -125,6 +125,25 @@
   .bit-p { color: var(--accent); font-weight:700; }
   .bit-d { color: var(--text); }
   code.k { font-family:var(--mono); color:var(--accent); }
+
+  /* ---- detailed / educational visualizations ---- */
+  .detail h4 { margin: 16px 0 6px; font-size: 13px; color: var(--accent); }
+  .detail p { margin: 6px 0; }
+  .step-explain { font-size: 12.5px; color: var(--text-dim); margin: 4px 0 2px; }
+  .matrix-wrap { display:inline-block; margin: 6px 14px 6px 0; vertical-align: top; text-align: center; }
+  .matrix-wrap .cap { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; white-space: nowrap; }
+  .matrix { display:inline-grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 4px; border-radius: 8px; background: var(--bg); border:1px solid var(--border); }
+  .matrix.acc { border-color: var(--accent); }
+  .mcell { background: var(--bg-elev2); border:1px solid var(--border); border-radius: 5px; padding: 5px 7px; font-family: var(--mono); font-size: 12px; text-align:center; min-width: 26px; }
+  .matrix.acc .mcell { border-color: var(--accent); color: var(--accent); }
+  .aes-step { margin: 8px 0; padding: 8px; border:1px solid var(--border); border-radius: 8px; background: var(--bg); }
+  .flow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-family:var(--mono); font-size:12px; margin: 8px 0; }
+  .flow .pill { background: var(--bg-elev2); border:1px solid var(--border); border-radius:6px; padding:4px 8px; }
+  .flow .arrow, .bchunk .arrow { color: var(--text-dim); }
+  .bgrp { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:8px 0; padding:10px; border:1px solid var(--border); border-radius:8px; background: var(--bg); }
+  .bchunk { text-align:center; font-family: var(--mono); font-size: 12px; }
+  .bchunk .bits { background: var(--accent-soft); color: var(--accent); padding:3px 6px; border-radius:5px; display:inline-block; letter-spacing:1px; }
+  .bchunk .char { font-size: 17px; font-weight:700; margin-top:2px; }
 </style>
 </head>
 <body>
@@ -134,7 +153,7 @@
     <div class="sub" data-i18n="appSub">Base/Base64 · Parita/CRC/Hamming · AES — overenie krokov prenosu</div>
   </div>
   <div class="spacer"></div>
-  <a class="toolbtn" id="detailLink" href="detailne/index.html" data-i18n="toDetail">Detailný režim →</a>
+  <a class="toolbtn" id="homeLink" href="../index.html" data-i18n="backToBasic">← Základná verzia</a>
   <span id="selftest" class="muted">…</span>
   <button class="toolbtn" id="langBtn">EN</button>
   <button class="toolbtn" id="themeBtn">☀︎</button>
@@ -221,6 +240,10 @@
       <div id="b-encoded" class="outbox"></div>
       <h3 data-i18n="bytesOfEncoded">Bajty zakódovaného výstupu</h3>
       <div id="b-encbytes"></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="detailHow">Ako to funguje — krok po kroku</h2>
+      <div id="b-detail" class="detail"></div>
     </div>
   </section>
 
@@ -310,6 +333,11 @@
       </div>
       <div id="ham-out"></div>
     </div>
+
+    <div class="card">
+      <h2 data-i18n="detailHow">Ako to funguje — krok po kroku</h2>
+      <div id="crc-detail" class="detail"></div>
+    </div>
   </section>
 
   <!-- ============ AES ============ -->
@@ -369,6 +397,10 @@
       <div id="a-blocks"></div>
       <div class="note" data-i18n="aesNote"></div>
     </div>
+    <div class="card">
+      <h2 data-i18n="detailHow">Ako to funguje — krok po kroku</h2>
+      <div id="a-detail" class="detail"></div>
+    </div>
   </section>
 
   <!-- ============ INFO ============ -->
@@ -414,6 +446,7 @@ const toHexJoined = b => Array.from(b).map(x => x.toString(16).padStart(2, "0"))
 const toDec = b => Array.from(b).map(x => x.toString(10)).join(" ");
 const toBin = b => Array.from(b).map(x => x.toString(2).padStart(8, "0")).join(" ");
 const toAscii = b => Array.from(b).map(x => (x >= 32 && x < 127) ? String.fromCharCode(x) : ".").join("");
+const hex2 = x => x.toString(16).padStart(2, "0");
 
 let copyCounter = 0;
 function tripleView(bytes, extraLines) {
@@ -640,7 +673,31 @@ const AES = (function () {
   function padTo16(res, blk) { const o = new Uint8Array(16); o.set(res.subarray(0, Math.min(16, res.length))); return o; }
   function padTo16Src(blk) { const o = new Uint8Array(16); o.set(blk.subarray(0, Math.min(16, blk.length))); return o; }
 
-  return { run, encBlock, keyExpansion, sbox, inv };
+  function roundKeyBytes(w, round) { const o = new Uint8Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[r + 4 * c] = w[round * 4 + c][r]; return o; }
+  function encBlockTrace(inp, w, Nr) {
+    const s = Uint8Array.from(inp);
+    const rounds = [];
+    const roundKeys = []; for (let r = 0; r <= Nr; r++) roundKeys.push(roundKeyBytes(w, r));
+    let steps = [{ name: "input", state: Uint8Array.from(s) }];
+    addRoundKey(s, w, 0); steps.push({ name: "AddRoundKey", state: Uint8Array.from(s), rk: 0 });
+    rounds.push({ round: 0, steps });
+    for (let r = 1; r < Nr; r++) {
+      steps = [];
+      subBytes(s); steps.push({ name: "SubBytes", state: Uint8Array.from(s) });
+      shiftRows(s); steps.push({ name: "ShiftRows", state: Uint8Array.from(s) });
+      mixColumns(s); steps.push({ name: "MixColumns", state: Uint8Array.from(s) });
+      addRoundKey(s, w, r); steps.push({ name: "AddRoundKey", state: Uint8Array.from(s), rk: r });
+      rounds.push({ round: r, steps });
+    }
+    steps = [];
+    subBytes(s); steps.push({ name: "SubBytes", state: Uint8Array.from(s) });
+    shiftRows(s); steps.push({ name: "ShiftRows", state: Uint8Array.from(s) });
+    addRoundKey(s, w, Nr); steps.push({ name: "AddRoundKey", state: Uint8Array.from(s), rk: Nr });
+    rounds.push({ round: Nr, steps });
+    return { rounds, roundKeys, output: Uint8Array.from(s), Nr };
+  }
+
+  return { run, encBlock, encBlockTrace, keyExpansion, sbox, inv };
 })();
 
 /* =========================================================================
@@ -678,7 +735,8 @@ function selfTest() {
    ========================================================================= */
 const I18N = {
   sk: {
-    appTitle: "MSP430FR5969 – Dátový nástroj", appSub: "Base/Base64 · Parita/CRC/Hamming · AES — overenie krokov prenosu",
+    appTitle: "MSP430FR5969 – Dátový nástroj", appSub: "Detailný režim · krok-za-krokom vizualizácie výpočtov",
+    backToBasic: "← Základná verzia", detailHow: "Ako to funguje — krok po kroku",
     tabPipeline: "Pipeline", tabBase: "Base / kódovanie", tabCrc: "CRC / Parita / Hamming", tabAes: "AES", tabInfo: "MSP430 info",
     pipeInput: "Vstupné dáta", lblData: "Dáta", lblFormat: "Formát vstupu", parsedBytes: "Parsované bajty",
     pipeFinal: "Finálny výsledok (na odoslanie)", lblScheme: "Schéma", lblPadding: "Padding", optOn: "Zapnuté (=)", optOff: "Vypnuté",
@@ -689,12 +747,12 @@ const I18N = {
     lblKeyLen: "Dĺžka kľúča", lblPad: "Padding", optNoPad: "Žiadny (×16)", optZero: "Zero-pad",
     lblKeyHex: "Kľúč (hex)", lblIvHex: "IV / Nonce (hex)", blocks: "Bloky (16 B)",
     aesNote: "Pozn.: AES akcelerátor MSP430FR5969 (AESA) robí natívne ECB pre 128/192/256-bit kľúče. CBC/CTR/CFB/OFB sú softvérové nad ECB. Pri zápise do registrov AESA dbaj na poradie bajtov (little-endian).",
-    toDetail: "Detailný režim →",
     enToggle: "EN", stEnable: "Zapnuté", stUp: "↑", stDown: "↓", stInput: "Vstup do kroku", stOutput: "Výstup kroku",
     stageAes: "AES (šifrovanie)", stageCrc: "CRC", stageBase: "Base64", crcAppended: "CRC pripojený k dátam",
   },
   en: {
-    appTitle: "MSP430FR5969 – Data Toolkit", appSub: "Base/Base64 · Parity/CRC/Hamming · AES — verify your transmission steps",
+    appTitle: "MSP430FR5969 – Data Toolkit", appSub: "Detailed mode · step-by-step visualisations of the computations",
+    backToBasic: "← Basic version", detailHow: "How it works — step by step",
     tabPipeline: "Pipeline", tabBase: "Base / encoding", tabCrc: "CRC / Parity / Hamming", tabAes: "AES", tabInfo: "MSP430 info",
     pipeInput: "Input data", lblData: "Data", lblFormat: "Input format", parsedBytes: "Parsed bytes",
     pipeFinal: "Final result (to transmit)", lblScheme: "Scheme", lblPadding: "Padding", optOn: "On (=)", optOff: "Off",
@@ -705,7 +763,6 @@ const I18N = {
     lblKeyLen: "Key length", lblPad: "Padding", optNoPad: "None (×16)", optZero: "Zero-pad",
     lblKeyHex: "Key (hex)", lblIvHex: "IV / Nonce (hex)", blocks: "Blocks (16 B)",
     aesNote: "Note: the MSP430FR5969 AES accelerator (AESA) natively does ECB for 128/192/256-bit keys. CBC/CTR/CFB/OFB are software on top of ECB. Mind byte order (little-endian) when writing AESA registers.",
-    toDetail: "Detailed mode →",
     enToggle: "SK", stEnable: "Enabled", stUp: "↑", stDown: "↓", stInput: "Stage input", stOutput: "Stage output",
     stageAes: "AES (encryption)", stageCrc: "CRC", stageBase: "Base64", crcAppended: "CRC appended to data",
   },
@@ -744,7 +801,8 @@ function recomputeBase() {
     const enc = baseEncode(bytes, readField("b-scheme"), readField("b-pad") === "on");
     out.textContent = enc || "(prázdne)";
     document.getElementById("b-encbytes").innerHTML = tripleView(new TextEncoder().encode(enc));
-  } catch (e) { out.innerHTML = '<span class="err">' + escapeHtml(e.message) + '</span>'; document.getElementById("b-encbytes").innerHTML = ""; }
+    renderBaseDetail(bytes, readField("b-scheme"), readField("b-pad") === "on");
+  } catch (e) { out.innerHTML = '<span class="err">' + escapeHtml(e.message) + '</span>'; document.getElementById("b-encbytes").innerHTML = ""; document.getElementById("b-detail").innerHTML = ""; }
 }
 
 /* ---- CRC tab ---- */
@@ -788,10 +846,12 @@ function recomputeCrc() {
     // parity
     recomputeParity(bytes);
     recomputeHamming(bytes);
+    renderCrcDetail(bytes, p);
   } catch (e) {
     document.getElementById("c-parsed").innerHTML = '<div class="err">' + escapeHtml(e.message) + '</div>';
     document.getElementById("crc-out").innerHTML = ""; document.getElementById("crc-msg").innerHTML = "";
     document.getElementById("par-out").innerHTML = ""; document.getElementById("ham-out").innerHTML = "";
+    document.getElementById("crc-detail").innerHTML = "";
   }
 }
 function recomputeParity(bytes) {
@@ -850,7 +910,182 @@ function recomputeAes() {
     res.blocks.forEach(b => { html += `<tr><td>${b.index}</td><td>${toHexJoined(b.input)}</td><td>${toHexJoined(b.output)}</td></tr>`; });
     html += '</table>';
     blk.innerHTML = html;
-  } catch (e) { out.innerHTML = '<div class="err">' + escapeHtml(e.message) + '</div>'; blk.innerHTML = ""; }
+    renderAesDetail(data, key);
+  } catch (e) { out.innerHTML = '<div class="err">' + escapeHtml(e.message) + '</div>'; blk.innerHTML = ""; document.getElementById("a-detail").innerHTML = ""; }
+}
+
+/* =========================================================================
+   7b) Detailné / edukatívne vizualizácie
+   ========================================================================= */
+function crcComputeTrace(bytes, p) {
+  const width = p.width, poly = p.poly >>> 0, init = p.init >>> 0, xorout = p.xorout >>> 0;
+  const mask = width === 32 ? 0xFFFFFFFF : ((1 << width) - 1) >>> 0;
+  const topbit = width === 32 ? 0x80000000 : (1 << (width - 1)) >>> 0;
+  let crc = init & mask;
+  const perByte = []; let firstByteBits = null;
+  for (let bi = 0; bi < bytes.length; bi++) {
+    const raw = bytes[bi];
+    const used = p.refin ? reflect(raw, 8) : raw;
+    const before = crc >>> 0;
+    crc = (crc ^ ((used << (width - 8)) >>> 0)) & mask;
+    const afterMix = crc >>> 0;
+    const bitsteps = bi === 0 ? [] : null;
+    for (let k = 0; k < 8; k++) {
+      const rb = crc >>> 0, msb = (crc & topbit) ? 1 : 0;
+      if (msb) crc = (((crc << 1) >>> 0) ^ poly) & mask; else crc = ((crc << 1) >>> 0) & mask;
+      if (bitsteps) bitsteps.push({ k, regBefore: rb, msb, regAfter: crc >>> 0 });
+    }
+    if (bi === 0) firstByteBits = { raw, used, afterMix, steps: bitsteps };
+    perByte.push({ i: bi, raw, used, before, regAfter: crc >>> 0 });
+  }
+  const rawFinal = crc >>> 0;
+  let reg = crc;
+  if (p.refout) reg = reflect(reg, width);
+  const afterRefout = reg >>> 0;
+  reg = (reg ^ xorout) & mask;
+  return { perByte, firstByteBits, rawFinal, afterRefout, final: reg >>> 0 };
+}
+function baseBreakdown(bytes, scheme) {
+  if (scheme === "base16") {
+    return { scheme, groups: Array.from(bytes).map(b => ({
+      inBytes: [b],
+      chunks: [
+        { bits: (b >> 4).toString(2).padStart(4, "0"), val: b >> 4, char: (b >> 4).toString(16).toUpperCase() },
+        { bits: (b & 15).toString(2).padStart(4, "0"), val: b & 15, char: (b & 15).toString(16).toUpperCase() },
+      ],
+    })) };
+  }
+  const isB32 = scheme === "base32";
+  const alphabet = scheme === "base64url" ? B64_URL : (isB32 ? B32_AL : B64_STD);
+  const groupBytes = isB32 ? 5 : 3, chunkBits = isB32 ? 5 : 6, chunksPerGroup = isB32 ? 8 : 4;
+  const groups = [];
+  for (let i = 0; i < bytes.length; i += groupBytes) {
+    const inBytes = []; for (let j = 0; j < groupBytes && i + j < bytes.length; j++) inBytes.push(bytes[i + j]);
+    const realBits = inBytes.length * 8;
+    let bitsStr = inBytes.map(b => b.toString(2).padStart(8, "0")).join("");
+    while (bitsStr.length % chunkBits !== 0) bitsStr += "0";
+    const chunks = [];
+    for (let c = 0; c < chunksPerGroup; c++) {
+      const start = c * chunkBits;
+      if (start < bitsStr.length) {
+        const seg = bitsStr.substr(start, chunkBits);
+        chunks.push({ bits: seg, val: parseInt(seg, 2), char: alphabet[parseInt(seg, 2)], pad: false });
+      } else {
+        chunks.push({ bits: "-".repeat(chunkBits), val: null, char: "=", pad: true });
+      }
+    }
+    groups.push({ inBytes, chunks, realBits });
+  }
+  return { scheme, groups };
+}
+function stateGrid(bytes, cap, accent) {
+  let cells = "";
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) cells += `<div class="mcell">${hex2(bytes[r + 4 * c])}</div>`;
+  return `<div class="matrix-wrap"><div class="cap">${cap || ""}</div><div class="matrix${accent ? " acc" : ""}">${cells}</div></div>`;
+}
+function renderBaseDetail(bytes, scheme, padOn) {
+  const host = document.getElementById("b-detail"); if (!host) return;
+  try {
+    const sk = LANG === "sk";
+    const bd = baseBreakdown(bytes, scheme);
+    const explain = {
+      base64: sk ? "Base64 berie dáta po <b>3 bajtoch (24 bitov)</b> a rozdelí ich na <b>4 skupiny po 6 bitov</b>. Každá 6-bitová hodnota (0–63) je index do abecedy A–Z a–z 0–9 + /." : "Base64 takes data in <b>3-byte (24-bit)</b> groups split into <b>4×6-bit</b> chunks. Each 6-bit value (0–63) indexes the alphabet A–Z a–z 0–9 + /.",
+      base64url: sk ? "Base64 URL-safe je ako Base64, len znaky <code class='k'>+ /</code> sú nahradené <code class='k'>- _</code>." : "Base64 URL-safe is like Base64 but <code class='k'>+ /</code> are replaced by <code class='k'>- _</code>.",
+      base32: sk ? "Base32 berie dáta po <b>5 bajtoch (40 bitov)</b> a rozdelí na <b>8 skupín po 5 bitov</b>. Každá 5-bitová hodnota (0–31) je index do A–Z 2–7." : "Base32 takes <b>5-byte (40-bit)</b> groups split into <b>8×5-bit</b> chunks; each 5-bit value (0–31) indexes A–Z 2–7.",
+      base16: sk ? "Base16/Hex rozdelí každý bajt na <b>2 nibble po 4 bitoch</b>; každý nibble (0–15) je jedna hex číslica." : "Base16/Hex splits each byte into <b>2×4-bit</b> nibbles; each nibble (0–15) is one hex digit.",
+    };
+    let h = `<p class="step-explain">${explain[scheme] || ""}</p>`;
+    const LIM = 6;
+    bd.groups.slice(0, LIM).forEach(g => {
+      h += '<div class="bgrp">';
+      h += `<div class="bchunk"><div class="muted">${sk ? "bajty" : "bytes"}</div><div class="bits">${g.inBytes.map(hex2).join(" ")}</div><div class="muted">${g.inBytes.map(b => b.toString(2).padStart(8, "0")).join(" ")}</div></div>`;
+      h += `<span class="arrow">→</span>`;
+      g.chunks.forEach(ch => {
+        if (ch.pad) h += `<div class="bchunk"><div class="bits" style="opacity:.45">${ch.bits}</div><div class="arrow">↓</div><div class="char" style="opacity:.6">=</div></div>`;
+        else h += `<div class="bchunk"><div class="bits">${ch.bits}</div><div class="arrow">↓</div><div class="muted">${ch.val}</div><div class="char">${escapeHtml(ch.char)}</div></div>`;
+      });
+      h += "</div>";
+    });
+    if (bd.groups.length > LIM) h += `<p class="muted">${sk ? `… ďalších ${bd.groups.length - LIM} skupín ide rovnako.` : `… ${bd.groups.length - LIM} more groups follow the same way.`}</p>`;
+    if (scheme !== "base16" && !padOn) h += `<p class="muted">${sk ? "Znak „=" + "“ (padding) sa zapíše len ak je padding zapnutý." : 'The "=" padding char is only emitted when padding is on.'}</p>`;
+    host.innerHTML = h;
+  } catch (e) { host.innerHTML = '<div class="muted">' + escapeHtml(e.message) + "</div>"; }
+}
+function renderCrcDetail(bytes, p) {
+  const host = document.getElementById("crc-detail"); if (!host) return;
+  try {
+    const sk = LANG === "sk", w = p.width, hw = w / 4;
+    const hexv = v => "0x" + (v >>> 0).toString(16).padStart(hw, "0").toUpperCase();
+    const binv = v => (v >>> 0).toString(2).padStart(w, "0");
+    const tr = crcComputeTrace(bytes, p);
+    let h = `<p class="step-explain">${sk ? "CRC = zvyšok po delení správy „generátorovým“ polynómom v GF(2) (XOR namiesto odčítania). Register sa inicializuje, pre každý bajt sa zmieša a 8× posunie; keď pred posunom „vypadne“ horný bit (MSB=1), register sa XOR-uje s polynómom." : "CRC = the remainder of dividing the message by a generator polynomial in GF(2) (XOR instead of subtraction). The register is initialised, then for each byte mixed and shifted 8×; whenever the top bit (MSB=1) falls out before the shift, the register is XORed with the polynomial."}</p>`;
+    h += `<div class="flow"><span class="pill">poly = ${hexv(p.poly)} = ${binv(p.poly)}</span><span class="pill">init = ${hexv(p.init)}</span><span class="pill">refin = ${p.refin}</span><span class="pill">refout = ${p.refout}</span><span class="pill">xorout = ${hexv(p.xorout)}</span></div>`;
+    if (p.refin) h += `<p class="step-explain">${sk ? "<b>refin = true</b>: každý vstupný bajt sa pred spracovaním bitovo zrkadlí (LSB-first) — presne ako register <code class='k'>CRCDI</code> na MSP430." : "<b>refin = true</b>: each input byte is bit-reversed (LSB-first) before processing — exactly like the <code class='k'>CRCDI</code> register on the MSP430."}</p>`;
+    if (tr.firstByteBits) {
+      const fb = tr.firstByteBits;
+      h += `<h4>${sk ? "Prvý bajt — bit po bite" : "First byte — bit by bit"}</h4>`;
+      h += `<p class="step-explain">${sk ? `bajt 0x${hex2(fb.raw)}${p.refin ? ` → po refin 0x${hex2(fb.used)}` : ""} sa zmieša do registra, potom nasleduje 8 posunov:` : `byte 0x${hex2(fb.raw)}${p.refin ? ` → after refin 0x${hex2(fb.used)}` : ""} is mixed into the register, then 8 shifts follow:`}</p>`;
+      h += `<table class="blocktbl"><tr><th>${sk ? "krok" : "step"}</th><th>${sk ? "reg pred" : "reg before"}</th><th>MSB</th><th>${sk ? "akcia" : "action"}</th><th>${sk ? "reg po" : "reg after"}</th></tr>`;
+      fb.steps.forEach(s => { h += `<tr><td>${s.k + 1}</td><td>${binv(s.regBefore)}</td><td class="bit-p">${s.msb}</td><td>${s.msb ? "&lt;&lt;1 ^ poly" : "&lt;&lt;1"}</td><td>${binv(s.regAfter)}</td></tr>`; });
+      h += "</table>";
+    }
+    h += `<h4>${sk ? "Register po každom bajte" : "Register after each byte"}</h4>`;
+    const LIM = 16;
+    h += `<table class="blocktbl"><tr><th>#</th><th>byte</th>${p.refin ? "<th>refin</th>" : ""}<th>${sk ? "reg po" : "reg after"}</th></tr>`;
+    tr.perByte.slice(0, LIM).forEach(pb => { h += `<tr><td>${pb.i}</td><td>0x${hex2(pb.raw)}</td>${p.refin ? `<td>0x${hex2(pb.used)}</td>` : ""}<td>${hexv(pb.regAfter)}</td></tr>`; });
+    h += "</table>";
+    if (tr.perByte.length > LIM) h += `<p class="muted">${sk ? `… ďalších ${tr.perByte.length - LIM} bajtov ide rovnako.` : `… ${tr.perByte.length - LIM} more bytes follow the same way.`}</p>`;
+    h += `<h4>${sk ? "Dokončenie" : "Finalisation"}</h4>`;
+    h += `<div class="flow"><span class="pill">${sk ? "surový" : "raw"} = ${hexv(tr.rawFinal)}</span>`;
+    if (p.refout) h += `<span class="arrow">→</span><span class="pill">refout → ${hexv(tr.afterRefout)}</span>`;
+    h += `<span class="arrow">→</span><span class="pill">xor ${hexv(p.xorout)} → <b>${hexv(tr.final)}</b></span></div>`;
+    host.innerHTML = h;
+  } catch (e) { host.innerHTML = '<div class="muted">' + escapeHtml(e.message) + "</div>"; }
+}
+function renderAesDetail(data, key) {
+  const host = document.getElementById("a-detail"); if (!host) return;
+  try {
+    const sk = LANG === "sk";
+    const block = new Uint8Array(16); block.set(data.subarray(0, 16));
+    const { w, Nr } = AES.keyExpansion(key);
+    const tr = AES.encBlockTrace(block, w, Nr);
+    let h = `<p class="step-explain">${sk ? "Detail ukazuje samotné blokové jadro AES (ECB) na <b>prvom 16-bajtovom bloku</b> vstupu. Stav je matica <b>4×4 bajtov</b> (plní sa po stĺpcoch). Režimy CBC/CTR/CFB/OFB len volajú toto jadro s upraveným vstupom (pozri „Bloky“ vyššie)." : "Detail shows the AES block core (ECB) on the <b>first 16-byte block</b> of input. The state is a <b>4×4 byte</b> matrix (filled column-major). CBC/CTR/CFB/OFB merely call this core with a modified input (see \"Blocks\" above)."}</p>`;
+    h += `<h4>${sk ? "Rozšírenie kľúča (round keys)" : "Key expansion (round keys)"}</h4>`;
+    h += `<p class="step-explain">${sk ? `Z kľúča sa odvodí <b>${Nr + 1}</b> kolových kľúčov K0…K${Nr} (každý 16 B) pomocou S-boxu, rotácie slova a konštanty rcon.` : `The key yields <b>${Nr + 1}</b> round keys K0…K${Nr} (16 B each) via the S-box, word rotation and the rcon constant.`}</p>`;
+    h += "<div>"; tr.roundKeys.forEach((rk, i) => h += stateGrid(rk, "K" + i)); h += "</div>";
+    h += `<h4>${sk ? "Štart" : "Start"}</h4><div>`;
+    h += stateGrid(tr.rounds[0].steps[0].state, sk ? "vstup (plaintext)" : "input (plaintext)");
+    h += stateGrid(tr.rounds[0].steps[1].state, "AddRoundKey · K0", true) + "</div>";
+    h += `<p class="step-explain">${sk ? "<b>AddRoundKey</b>: stav sa po bajtoch XOR-uje s K0." : "<b>AddRoundKey</b>: the state is XORed byte-wise with K0."}</p>`;
+    const exp = sk ? {
+      SubBytes: "každý bajt sa nahradí hodnotou zo S-boxu (nelineárna substitúcia).",
+      ShiftRows: "riadky sa cyklicky posunú vľavo: riadok 0 o 0, riadok 1 o 1, riadok 2 o 2, riadok 3 o 3 bajty.",
+      MixColumns: "každý stĺpec sa „premieša“ násobením v GF(2⁸) — difúzia medzi bajtmi.",
+      AddRoundKey: "stav sa po bajtoch XOR-uje s kolovým kľúčom.",
+    } : {
+      SubBytes: "each byte is replaced by its S-box value (non-linear substitution).",
+      ShiftRows: "rows shift cyclically left: row 0 by 0, row 1 by 1, row 2 by 2, row 3 by 3 bytes.",
+      MixColumns: "each column is mixed by multiplication in GF(2⁸) — diffusion across bytes.",
+      AddRoundKey: "the state is XORed byte-wise with the round key.",
+    };
+    h += `<h4>${sk ? "1. kolo — plne rozpísané" : "Round 1 — full detail"}</h4>`;
+    tr.rounds[1].steps.forEach(stp => {
+      const cap = stp.name + (stp.name === "AddRoundKey" ? " · K1" : "");
+      h += `<div class="aes-step">${stateGrid(stp.state, cap, stp.name === "AddRoundKey")}<div class="step-explain"><b>${stp.name}</b>: ${exp[stp.name]}</div></div>`;
+    });
+    if (Nr > 1) {
+      h += `<h4>${sk ? `Kolá 2–${Nr} (kompaktne — stav po každom kole)` : `Rounds 2–${Nr} (compact — state after each round)`}</h4><div>`;
+      for (let r = 2; r <= Nr; r++) {
+        const last = tr.rounds[r].steps[tr.rounds[r].steps.length - 1].state;
+        h += stateGrid(last, (sk ? "po kole " : "after round ") + r, r === Nr);
+      }
+      h += "</div>";
+      h += `<p class="step-explain">${sk ? `Posledné kolo (${Nr}) <b>nemá MixColumns</b>.` : `The last round (${Nr}) has <b>no MixColumns</b>.`}</p>`;
+    }
+    h += `<h4>${sk ? "Výsledok — ciphertext blok" : "Result — ciphertext block"}</h4><div>${stateGrid(tr.output, "ciphertext", true)}</div>`;
+    h += `<div class="triple"><div class="tline"><span class="tlabel">HEX</span><span class="tval">${toHexJoined(tr.output)}</span></div></div>`;
+    host.innerHTML = h;
+  } catch (e) { host.innerHTML = '<div class="muted">' + escapeHtml(e.message) + "</div>"; }
 }
 
 /* ---- Pipeline ---- */

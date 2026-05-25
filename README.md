@@ -23,7 +23,14 @@ kódovanie, kontrolný súčet/parita a AES šifrovanie. Všade je zobrazenie v
 
 UI je dvojjazyčné **SK/EN** (default SK) s prepínačom **dark/light** (default dark).
 
+## Detailný režim
+
+V priečinku `detailne/` je kópia stránky s **edukatívnym režimom**: pri Base, CRC a
+AES vidíš živé **krok-za-krokom vizualizácie** (Base64 prerozdelenie bitov, CRC register
+bit po bite + po bajtoch, AES round keys a stav 4×4 po každej transformácii) s
+vysvetlením, čo a prečo sa deje. Prepínanie medzi verziami je tlačidlom v hlavičke.
+
 ## Použitie
 
-Otvor `index.html` v prehliadači. Indikátor `self-test ✓` v hlavičke potvrdzuje,
+Otvor `index.html` v prehliadači (detailnú verziu cez `detailne/index.html`). Indikátor `self-test ✓` v hlavičke potvrdzuje,
 že AES (FIPS-197 vektory) a CRC (známe kontrolné hodnoty) počítajú správne.
