@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="sk" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MSP430FR5969 – Data Toolkit</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --bg-elev: #161b22;
+    --bg-elev2: #1c232d;
+    --border: #2a323d;
+    --text: #e6edf3;
+    --text-dim: #9aa7b4;
+    --accent: #4f9dff;
+    --accent-soft: #1f3a5c;
+    --ok: #3fb950;
+    --err: #f85149;
+    --warn: #d29922;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  [data-theme="light"] {
+    --bg: #f4f6fa;
+    --bg-elev: #ffffff;
+    --bg-elev2: #eef1f6;
+    --border: #d6dde6;
+    --text: #1a1f26;
+    --text-dim: #5a6673;
+    --accent: #1769d6;
+    --accent-soft: #d6e6ff;
+    --ok: #1a7f37;
+    --err: #cf222e;
+    --warn: #9a6700;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 14px;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--text-dim); font-size: 12px; }
+  header .spacer { flex: 1; }
+  .toolbtn {
+    background: var(--bg-elev2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer; font-size: 13px;
+  }
+  .toolbtn:hover { border-color: var(--accent); }
+  #selftest { font-size: 12px; padding: 4px 8px; border-radius: 6px; }
+  #selftest.ok { color: var(--ok); }
+  #selftest.fail { color: var(--err); }
+
+  nav.tabs { display: flex; gap: 4px; padding: 0 20px; background: var(--bg-elev); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  nav.tabs button {
+    background: none; border: none; color: var(--text-dim);
+    padding: 12px 16px; cursor: pointer; font-size: 14px;
+    border-bottom: 2px solid transparent;
+  }
+  nav.tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+  nav.tabs button:hover { color: var(--text); }
+
+  main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+  .tabpane { display: none; }
+  .tabpane.active { display: block; }
+
+  .card {
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 16px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 15px; }
+  .card h3 { margin: 14px 0 8px; font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
+
+  label { display: block; font-size: 12px; color: var(--text-dim); margin: 8px 0 4px; }
+  input[type=text], textarea, select {
+    width: 100%; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-family: var(--mono); font-size: 13px;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  select { font-family: inherit; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 140px; }
+  .inline { display: flex; align-items: center; gap: 8px; }
+  .inline input[type=checkbox] { width: auto; }
+  .chk { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text); margin-top:6px; }
+  .chk input { width:auto; }
+
+  .triple { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 6px; }
+  .triple .tline { display: flex; gap: 8px; font-family: var(--mono); font-size: 12px; align-items: baseline; padding: 2px 0; }
+  .triple .tlabel { color: var(--accent); width: 42px; flex-shrink: 0; font-weight: 600; }
+  .triple .tval { word-break: break-all; white-space: pre-wrap; color: var(--text); }
+  .triple .copy { margin-left: auto; }
+  .copybtn { background: none; border: 1px solid var(--border); color: var(--text-dim); border-radius: 6px; font-size: 11px; padding: 1px 6px; cursor: pointer; flex-shrink:0; }
+  .copybtn:hover { color: var(--text); border-color: var(--accent); }
+
+  .outbox { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: var(--mono); font-size: 13px; word-break: break-all; white-space: pre-wrap; margin-top: 6px; }
+  .muted { color: var(--text-dim); font-size: 12px; }
+  .note { background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; font-size: 12px; margin-top: 8px; }
+  .err { color: var(--err); }
+  .tag { display:inline-block; font-size:11px; background:var(--accent-soft); color:var(--accent); padding:1px 6px; border-radius:5px; margin-left:6px; }
+
+  .stage { border:1px solid var(--border); border-radius:10px; margin-bottom:12px; overflow:hidden; }
+  .stage.disabled { opacity:.55; }
+  .stage-head { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg-elev2); }
+  .stage-head .title { font-weight:600; }
+  .stage-head .spacer { flex:1; }
+  .stage-body { padding:12px; }
+  .miniarrow { text-align:center; color:var(--text-dim); font-size:18px; margin:2px 0; }
+  .final { border-color: var(--accent); }
+  .blocktbl { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12px; margin-top:6px; }
+  .blocktbl th, .blocktbl td { border:1px solid var(--border); padding:4px 6px; text-align:left; word-break:break-all; }
+  .blocktbl th { color:var(--text-dim); font-weight:600; }
+  .bit-p { color: var(--accent); font-weight:700; }
+  .bit-d { color: var(--text); }
+  code.k { font-family:var(--mono); color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1 data-i18n="appTitle">MSP430FR5969 – Dátový nástroj</h1>
+    <div class="sub" data-i18n="appSub">Base/Base64 · Parita/CRC/Hamming · AES — overenie krokov prenosu</div>
+  </div>
+  <div class="spacer"></div>
+  <span id="selftest" class="muted">…</span>
+  <button class="toolbtn" id="langBtn">EN</button>
+  <button class="toolbtn" id="themeBtn">☀︎</button>
+</header>
+
+<nav class="tabs">
+  <button data-tab="pipeline" class="active" data-i18n="tabPipeline">Pipeline</button>
+  <button data-tab="base" data-i18n="tabBase">Base / kódovanie</button>
+  <button data-tab="crc" data-i18n="tabCrc">CRC / Parita / Hamming</button>
+  <button data-tab="aes" data-i18n="tabAes">AES</button>
+  <button data-tab="info" data-i18n="tabInfo">MSP430 info</button>
+</nav>
+
+<main>
+  <!-- ============ PIPELINE ============ -->
+  <section id="tab-pipeline" class="tabpane active">
+    <div class="card">
+      <h2 data-i18n="pipeInput">Vstupné dáta</h2>
+      <div class="row">
+        <div style="flex:3;">
+          <label data-i18n="lblData">Dáta</label>
+          <textarea id="pl-input">Hello MSP430</textarea>
+        </div>
+        <div>
+          <label data-i18n="lblFormat">Formát vstupu</label>
+          <select id="pl-format">
+            <option value="text">Text (UTF-8)</option>
+            <option value="hex">Hex</option>
+            <option value="dec">Dec</option>
+            <option value="bin">Bin</option>
+          </select>
+        </div>
+      </div>
+      <h3 data-i18n="parsedBytes">Parsované bajty</h3>
+      <div id="pl-parsed"></div>
+    </div>
+
+    <div id="pl-stages"></div>
+
+    <div class="card final">
+      <h2 data-i18n="pipeFinal">Finálny výsledok (na odoslanie)</h2>
+      <div id="pl-final"></div>
+    </div>
+  </section>
+
+  <!-- ============ BASE ============ -->
+  <section id="tab-base" class="tabpane">
+    <div class="card">
+      <h2 data-i18n="tabBase">Base / kódovanie</h2>
+      <div class="row">
+        <div style="flex:3;">
+          <label data-i18n="lblData">Dáta</label>
+          <textarea id="b-input">Hello MSP430</textarea>
+        </div>
+        <div>
+          <label data-i18n="lblFormat">Formát vstupu</label>
+          <select id="b-format">
+            <option value="text">Text (UTF-8)</option>
+            <option value="hex">Hex</option>
+            <option value="dec">Dec</option>
+            <option value="bin">Bin</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label data-i18n="lblScheme">Schéma</label>
+          <select id="b-scheme">
+            <option value="base64">Base64</option>
+            <option value="base64url">Base64 URL-safe</option>
+            <option value="base32">Base32 (RFC 4648)</option>
+            <option value="base16">Base16 / Hex</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="lblPadding">Padding</label>
+          <select id="b-pad">
+            <option value="on" data-i18n="optOn">Zapnuté (=)</option>
+            <option value="off" data-i18n="optOff">Vypnuté</option>
+          </select>
+        </div>
+      </div>
+      <h3 data-i18n="encodedStr">Zakódovaný reťazec</h3>
+      <div id="b-encoded" class="outbox"></div>
+      <h3 data-i18n="bytesOfEncoded">Bajty zakódovaného výstupu</h3>
+      <div id="b-encbytes"></div>
+    </div>
+  </section>
+
+  <!-- ============ CRC ============ -->
+  <section id="tab-crc" class="tabpane">
+    <div class="card">
+      <h2 data-i18n="tabCrc">CRC / Parita / Hamming</h2>
+      <div class="row">
+        <div style="flex:3;">
+          <label data-i18n="lblData">Dáta</label>
+          <textarea id="c-input">Hello MSP430</textarea>
+        </div>
+        <div>
+          <label data-i18n="lblFormat">Formát vstupu</label>
+          <select id="c-format">
+            <option value="text">Text (UTF-8)</option>
+            <option value="hex">Hex</option>
+            <option value="dec">Dec</option>
+            <option value="bin">Bin</option>
+          </select>
+        </div>
+      </div>
+      <h3 data-i18n="parsedBytes">Parsované bajty</h3>
+      <div id="c-parsed"></div>
+    </div>
+
+    <div class="card">
+      <h2>CRC</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="lblPreset">Preset</label>
+          <select id="crc-preset"></select>
+        </div>
+        <div>
+          <label data-i18n="lblWidth">Šírka</label>
+          <select id="crc-width"><option>8</option><option selected>16</option><option>32</option></select>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Polynóm (hex)</label><input id="crc-poly" type="text" value="1021"></div>
+        <div><label>Init (hex)</label><input id="crc-init" type="text" value="FFFF"></div>
+        <div><label>XorOut (hex)</label><input id="crc-xor" type="text" value="0000"></div>
+      </div>
+      <div class="inline">
+        <label class="chk"><input type="checkbox" id="crc-refin"> RefIn</label>
+        <label class="chk"><input type="checkbox" id="crc-refout"> RefOut</label>
+        <label class="chk"><input type="checkbox" id="crc-le" checked> <span data-i18n="lblAppendLE">Pripojiť CRC little-endian</span></label>
+      </div>
+      <h3>CRC <span data-i18n="result">výsledok</span></h3>
+      <div id="crc-out"></div>
+      <h3 data-i18n="msgWithCrc">Správa + pripojený CRC</h3>
+      <div id="crc-msg"></div>
+      <div class="note" id="crc-note"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="parityTitle">Parita</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="lblParityType">Typ</label>
+          <select id="par-type"><option value="even">Even</option><option value="odd">Odd</option></select>
+        </div>
+        <div>
+          <label data-i18n="lblParityMode">Režim</label>
+          <select id="par-mode">
+            <option value="byte" data-i18n="optPerByte">Per-bajt (UART)</option>
+            <option value="all" data-i18n="optWhole">Cez celú správu</option>
+          </select>
+        </div>
+      </div>
+      <div id="par-out"></div>
+    </div>
+
+    <div class="card">
+      <h2>Hamming (SEC / SECDED)</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="lblHamUnit">Jednotka</label>
+          <select id="ham-unit">
+            <option value="nibble">Hamming(7,4) — per nibble</option>
+            <option value="byte" selected>Hamming(12,8) — per bajt</option>
+          </select>
+        </div>
+        <div>
+          <label class="chk" style="margin-top:26px;"><input type="checkbox" id="ham-secded" checked> SECDED (+1 overall parity)</label>
+        </div>
+      </div>
+      <div id="ham-out"></div>
+    </div>
+  </section>
+
+  <!-- ============ AES ============ -->
+  <section id="tab-aes" class="tabpane">
+    <div class="card">
+      <h2>AES</h2>
+      <div class="row">
+        <div>
+          <label data-i18n="lblOp">Operácia</label>
+          <select id="a-op"><option value="enc" data-i18n="optEnc">Šifrovať</option><option value="dec" data-i18n="optDec">Dešifrovať</option></select>
+        </div>
+        <div>
+          <label data-i18n="lblMode">Režim</label>
+          <select id="a-mode">
+            <option value="ECB">ECB (HW natívny)</option>
+            <option value="CBC">CBC</option>
+            <option value="CTR">CTR</option>
+            <option value="CFB">CFB</option>
+            <option value="OFB">OFB</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="lblKeyLen">Dĺžka kľúča</label>
+          <select id="a-keylen"><option>128</option><option>192</option><option>256</option></select>
+        </div>
+        <div>
+          <label data-i18n="lblPad">Padding</label>
+          <select id="a-pad">
+            <option value="none" data-i18n="optNoPad">Žiadny (×16)</option>
+            <option value="pkcs7">PKCS#7</option>
+            <option value="zero" data-i18n="optZero">Zero-pad</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div style="flex:2;">
+          <label data-i18n="lblData">Dáta</label>
+          <textarea id="a-input">Hello MSP430!!!!</textarea>
+        </div>
+        <div>
+          <label data-i18n="lblFormat">Formát vstupu</label>
+          <select id="a-format">
+            <option value="text">Text (UTF-8)</option>
+            <option value="hex">Hex</option>
+            <option value="dec">Dec</option>
+            <option value="bin">Bin</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div style="flex:2;"><label data-i18n="lblKeyHex">Kľúč (hex)</label><input id="a-key" type="text" value="000102030405060708090a0b0c0d0e0f"></div>
+        <div style="flex:2;"><label data-i18n="lblIvHex">IV / Nonce (hex)</label><input id="a-iv" type="text" value="00000000000000000000000000000000"></div>
+      </div>
+      <h3 data-i18n="result">Výsledok</h3>
+      <div id="a-out"></div>
+      <h3 data-i18n="blocks">Bloky (16 B)</h3>
+      <div id="a-blocks"></div>
+      <div class="note" data-i18n="aesNote"></div>
+    </div>
+  </section>
+
+  <!-- ============ INFO ============ -->
+  <section id="tab-info" class="tabpane">
+    <div class="card" id="info-card"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* =========================================================================
+   1) Konverzné utility
+   ========================================================================= */
+function parseInput(str, fmt) {
+  str = (str || "");
+  if (fmt === "text") return new TextEncoder().encode(str);
+  if (fmt === "hex") {
+    const clean = str.replace(/0x/gi, "").replace(/[^0-9a-fA-F]/g, "");
+    if (clean.length % 2 !== 0) throw new Error("Hex musí mať párny počet číslic / Hex must have even number of digits");
+    const out = new Uint8Array(clean.length / 2);
+    for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+    return out;
+  }
+  if (fmt === "dec") {
+    const parts = str.split(/[^0-9]+/).filter(x => x.length);
+    return new Uint8Array(parts.map(p => {
+      const v = parseInt(p, 10);
+      if (v < 0 || v > 255) throw new Error("Dec bajt mimo 0..255 / Dec byte out of range");
+      return v;
+    }));
+  }
+  if (fmt === "bin") {
+    const clean = str.replace(/[^01]/g, "");
+    if (clean.length % 8 !== 0) throw new Error("Bin musí byť násobok 8 bitov / Bin must be a multiple of 8 bits");
+    const out = new Uint8Array(clean.length / 8);
+    for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 8, 8), 2);
+    return out;
+  }
+  throw new Error("Neznámy formát");
+}
+const toHex = b => Array.from(b).map(x => x.toString(16).padStart(2, "0")).join(" ");
+const toHexJoined = b => Array.from(b).map(x => x.toString(16).padStart(2, "0")).join("");
+const toDec = b => Array.from(b).map(x => x.toString(10)).join(" ");
+const toBin = b => Array.from(b).map(x => x.toString(2).padStart(8, "0")).join(" ");
+const toAscii = b => Array.from(b).map(x => (x >= 32 && x < 127) ? String.fromCharCode(x) : ".").join("");
+
+let copyCounter = 0;
+function tripleView(bytes, extraLines) {
+  const lines = [
+    ["HEX", toHex(bytes)],
+    ["DEC", toDec(bytes)],
+    ["BIN", toBin(bytes)],
+    ["ASCII", toAscii(bytes)],
+  ];
+  if (extraLines) extraLines.forEach(l => lines.push(l));
+  let html = '<div class="triple">';
+  for (const [lab, val] of lines) {
+    const id = "cp" + (copyCounter++);
+    html += `<div class="tline"><span class="tlabel">${lab}</span>` +
+            `<span class="tval" id="${id}">${escapeHtml(val) || '<span class="muted">(prázdne)</span>'}</span>` +
+            `<button class="copybtn" onclick="copyEl('${id}')">copy</button></div>`;
+  }
+  html += `<div class="muted" style="margin-top:6px;">${bytes.length} B</div></div>`;
+  return html;
+}
+function escapeHtml(s) { return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+function copyEl(id) {
+  const t = document.getElementById(id).innerText;
+  navigator.clipboard && navigator.clipboard.writeText(t);
+}
+
+/* =========================================================================
+   2) Base kódovania
+   ========================================================================= */
+const B64_STD = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const B64_URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const B32_AL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+function base64encode(bytes, alphabet, pad) {
+  let out = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b0 = bytes[i], b1 = bytes[i + 1], b2 = bytes[i + 2];
+    const n = (b0 << 16) | ((b1 || 0) << 8) | (b2 || 0);
+    out += alphabet[(n >> 18) & 63] + alphabet[(n >> 12) & 63];
+    out += (i + 1 < bytes.length) ? alphabet[(n >> 6) & 63] : (pad ? "=" : "");
+    out += (i + 2 < bytes.length) ? alphabet[n & 63] : (pad ? "=" : "");
+  }
+  return out;
+}
+function base32encode(bytes, pad) {
+  let bits = 0, value = 0, out = "";
+  for (const b of bytes) {
+    value = (value << 8) | b; bits += 8;
+    while (bits >= 5) { out += B32_AL[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits > 0) out += B32_AL[(value << (5 - bits)) & 31];
+  if (pad) while (out.length % 8 !== 0) out += "=";
+  return out;
+}
+function baseEncode(bytes, scheme, pad) {
+  if (scheme === "base64") return base64encode(bytes, B64_STD, pad);
+  if (scheme === "base64url") return base64encode(bytes, B64_URL, pad);
+  if (scheme === "base32") return base32encode(bytes, pad);
+  if (scheme === "base16") return toHexJoined(bytes).toUpperCase();
+  return "";
+}
+
+/* =========================================================================
+   3) CRC engine + presety, parita, Hamming
+   ========================================================================= */
+function reflect(v, bits) {
+  let r = 0;
+  for (let i = 0; i < bits; i++) if (v & (1 << i)) r |= 1 << (bits - 1 - i);
+  return r >>> 0;
+}
+function crcCompute(bytes, p) {
+  const width = p.width, poly = p.poly >>> 0, init = p.init >>> 0, xorout = p.xorout >>> 0;
+  const mask = width === 32 ? 0xFFFFFFFF : ((1 << width) - 1) >>> 0;
+  const topbit = width === 32 ? 0x80000000 : (1 << (width - 1)) >>> 0;
+  let crc = init & mask;
+  for (let bi = 0; bi < bytes.length; bi++) {
+    let b = p.refin ? reflect(bytes[bi], 8) : bytes[bi];
+    crc = (crc ^ ((b << (width - 8)) >>> 0)) & mask;
+    for (let k = 0; k < 8; k++) {
+      if (crc & topbit) crc = (((crc << 1) >>> 0) ^ poly) & mask;
+      else crc = ((crc << 1) >>> 0) & mask;
+    }
+  }
+  if (p.refout) crc = reflect(crc, width);
+  crc = (crc ^ xorout) & mask;
+  return crc >>> 0;
+}
+const CRC_PRESETS = {
+  "CRC-8/SMBUS":          { width: 8,  poly: 0x07,       init: 0x00,       refin: false, refout: false, xorout: 0x00 },
+  "CRC-8/MAXIM":          { width: 8,  poly: 0x31,       init: 0x00,       refin: true,  refout: true,  xorout: 0x00 },
+  "CRC-16/CCITT-FALSE":   { width: 16, poly: 0x1021,     init: 0xFFFF,     refin: false, refout: false, xorout: 0x0000 },
+  "CRC-16/XMODEM":        { width: 16, poly: 0x1021,     init: 0x0000,     refin: false, refout: false, xorout: 0x0000 },
+  "CRC-16/MODBUS":        { width: 16, poly: 0x8005,     init: 0xFFFF,     refin: true,  refout: true,  xorout: 0x0000 },
+  "CRC-16/X25":           { width: 16, poly: 0x1021,     init: 0xFFFF,     refin: true,  refout: true,  xorout: 0xFFFF },
+  "MSP430 CRC16 — CRCDI (reflektovaný ≡ MCRF4XX)":   { width: 16, poly: 0x1021, init: 0xFFFF, refin: true,  refout: true,  xorout: 0x0000 },
+  "MSP430 CRC16 — CRCDIRB (bit-reversed ≡ CCITT-FALSE)": { width: 16, poly: 0x1021, init: 0xFFFF, refin: false, refout: false, xorout: 0x0000 },
+  "CRC-32 (zlib/PKZIP)":  { width: 32, poly: 0x04C11DB7, init: 0xFFFFFFFF, refin: true,  refout: true,  xorout: 0xFFFFFFFF },
+  "CRC-32/BZIP2":         { width: 32, poly: 0x04C11DB7, init: 0xFFFFFFFF, refin: false, refout: false, xorout: 0xFFFFFFFF },
+};
+function crcToBytes(crc, width, littleEndian) {
+  const nbytes = width / 8;
+  const out = [];
+  for (let i = 0; i < nbytes; i++) out.push((crc >>> (8 * i)) & 0xFF); // little-endian order
+  if (!littleEndian) out.reverse();
+  return new Uint8Array(out);
+}
+
+function parityBit(byte, type) {
+  let c = 0; for (let i = 0; i < 8; i++) if (byte & (1 << i)) c++;
+  const even = c % 2; // 1 if odd number of ones
+  return type === "even" ? even : (even ^ 1);
+}
+function parityWhole(bytes, type) {
+  let c = 0; for (const b of bytes) for (let i = 0; i < 8; i++) if (b & (1 << i)) c++;
+  const even = c % 2;
+  return type === "even" ? even : (even ^ 1);
+}
+
+/* Generic Hamming SEC encode of n data bits (MSB-first array), optional overall parity (SECDED). */
+function hammingEncode(dataBits, secded) {
+  const n = dataBits.length;
+  let r = 0; while ((1 << r) < (n + r + 1)) r++;
+  const m = n + r;
+  const code = new Array(m + 1).fill(0); // 1-indexed
+  // place data into non power-of-two positions
+  let di = 0;
+  for (let pos = 1; pos <= m; pos++) {
+    if ((pos & (pos - 1)) === 0) continue; // power of two => parity
+    code[pos] = dataBits[di++];
+  }
+  // compute parity bits
+  for (let i = 0; i < r; i++) {
+    const pp = 1 << i; let x = 0;
+    for (let pos = 1; pos <= m; pos++) if (pos & pp) x ^= code[pos];
+    code[pp] = x;
+  }
+  const bits = code.slice(1); // positions 1..m
+  let overall = null;
+  if (secded) { overall = bits.reduce((a, b) => a ^ b, 0); bits.push(overall); }
+  return { bits, parityPositions: Array.from({ length: r }, (_, i) => 1 << i), n, r, m, overall };
+}
+function byteToBits(b, count) { const out = []; for (let i = count - 1; i >= 0; i--) out.push((b >> i) & 1); return out; }
+
+/* =========================================================================
+   4) AES (FIPS-197) – 128/192/256, ECB/CBC/CTR/CFB/OFB
+   ========================================================================= */
+const AES = (function () {
+  const sbox = new Uint8Array(256), inv = new Uint8Array(256);
+  (function () {
+    let p = 1, q = 1;
+    do {
+      p = (p ^ (p << 1) ^ ((p & 0x80) ? 0x11B : 0)) & 0xFF;
+      q ^= q << 1; q ^= q << 2; q ^= q << 4; q &= 0xFF; if (q & 0x80) q ^= 0x09; q &= 0xFF;
+      const x = q ^ ((q << 1) | (q >> 7)) ^ ((q << 2) | (q >> 6)) ^ ((q << 3) | (q >> 5)) ^ ((q << 4) | (q >> 4));
+      sbox[p] = (x ^ 0x63) & 0xFF;
+    } while (p !== 1);
+    sbox[0] = 0x63;
+    for (let i = 0; i < 256; i++) inv[sbox[i]] = i;
+  })();
+  function mul(a, b) { let r = 0; for (let i = 0; i < 8; i++) { if (b & 1) r ^= a; const hi = a & 0x80; a = (a << 1) & 0xFF; if (hi) a ^= 0x1b; b >>= 1; } return r; }
+  function xtime(a) { return ((a << 1) ^ ((a & 0x80) ? 0x1b : 0)) & 0xFF; }
+  function keyExpansion(key) {
+    const Nk = key.length / 4, Nr = Nk + 6, Nb = 4;
+    const w = new Array(Nb * (Nr + 1));
+    for (let i = 0; i < Nk; i++) w[i] = [key[4 * i], key[4 * i + 1], key[4 * i + 2], key[4 * i + 3]];
+    const rcon = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d];
+    for (let i = Nk; i < Nb * (Nr + 1); i++) {
+      let t = w[i - 1].slice();
+      if (i % Nk === 0) { t = [sbox[t[1]], sbox[t[2]], sbox[t[3]], sbox[t[0]]]; t[0] ^= rcon[i / Nk - 1]; }
+      else if (Nk > 6 && i % Nk === 4) { t = t.map(x => sbox[x]); }
+      w[i] = [w[i - Nk][0] ^ t[0], w[i - Nk][1] ^ t[1], w[i - Nk][2] ^ t[2], w[i - Nk][3] ^ t[3]];
+    }
+    return { w, Nr };
+  }
+  function addRoundKey(s, w, round) { for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) s[r + 4 * c] ^= w[round * 4 + c][r]; }
+  function subBytes(s) { for (let i = 0; i < 16; i++) s[i] = sbox[s[i]]; }
+  function invSubBytes(s) { for (let i = 0; i < 16; i++) s[i] = inv[s[i]]; }
+  function shiftRows(s) { const t = s.slice(); for (let r = 1; r < 4; r++) for (let c = 0; c < 4; c++) s[r + 4 * c] = t[r + 4 * ((c + r) % 4)]; }
+  function invShiftRows(s) { const t = s.slice(); for (let r = 1; r < 4; r++) for (let c = 0; c < 4; c++) s[r + 4 * c] = t[r + 4 * ((c - r + 4) % 4)]; }
+  function mixColumns(s) { for (let c = 0; c < 4; c++) { const i = 4 * c, a0 = s[i], a1 = s[i + 1], a2 = s[i + 2], a3 = s[i + 3]; s[i] = xtime(a0) ^ (xtime(a1) ^ a1) ^ a2 ^ a3; s[i + 1] = a0 ^ xtime(a1) ^ (xtime(a2) ^ a2) ^ a3; s[i + 2] = a0 ^ a1 ^ xtime(a2) ^ (xtime(a3) ^ a3); s[i + 3] = (xtime(a0) ^ a0) ^ a1 ^ a2 ^ xtime(a3); } }
+  function invMixColumns(s) { for (let c = 0; c < 4; c++) { const i = 4 * c, a0 = s[i], a1 = s[i + 1], a2 = s[i + 2], a3 = s[i + 3]; s[i] = mul(a0, 14) ^ mul(a1, 11) ^ mul(a2, 13) ^ mul(a3, 9); s[i + 1] = mul(a0, 9) ^ mul(a1, 14) ^ mul(a2, 11) ^ mul(a3, 13); s[i + 2] = mul(a0, 13) ^ mul(a1, 9) ^ mul(a2, 14) ^ mul(a3, 11); s[i + 3] = mul(a0, 11) ^ mul(a1, 13) ^ mul(a2, 9) ^ mul(a3, 14); } }
+  function encBlock(inp, w, Nr) { const s = Uint8Array.from(inp); addRoundKey(s, w, 0); for (let r = 1; r < Nr; r++) { subBytes(s); shiftRows(s); mixColumns(s); addRoundKey(s, w, r); } subBytes(s); shiftRows(s); addRoundKey(s, w, Nr); return s; }
+  function decBlock(inp, w, Nr) { const s = Uint8Array.from(inp); addRoundKey(s, w, Nr); for (let r = Nr - 1; r >= 1; r--) { invShiftRows(s); invSubBytes(s); addRoundKey(s, w, r); invMixColumns(s); } invShiftRows(s); invSubBytes(s); addRoundKey(s, w, 0); return s; }
+  function xorArr(a, b) { const o = new Uint8Array(a.length); for (let i = 0; i < a.length; i++) o[i] = a[i] ^ b[i]; return o; }
+  function incCounter(ctr) { for (let i = 15; i >= 0; i--) { ctr[i] = (ctr[i] + 1) & 0xFF; if (ctr[i] !== 0) break; } }
+
+  function run(op, mode, data, key, iv, padMode) {
+    const { w, Nr } = keyExpansion(key);
+    let inp = Uint8Array.from(data);
+    // padding only for ECB/CBC encrypt
+    const blockBased = (mode === "ECB" || mode === "CBC");
+    if (op === "enc" && blockBased) {
+      if (padMode === "pkcs7") { const p = 16 - (inp.length % 16) || 16; const o = new Uint8Array(inp.length + p); o.set(inp); o.fill(p, inp.length); inp = o; }
+      else if (padMode === "zero") { const rem = inp.length % 16; if (rem) { const o = new Uint8Array(inp.length + (16 - rem)); o.set(inp); inp = o; } }
+    }
+    if (blockBased && inp.length % 16 !== 0) throw new Error("Dĺžka nie je násobok 16 B (zvoľ padding) / Length not multiple of 16 (choose padding)");
+
+    const out = new Uint8Array(inp.length);
+    const blocks = [];
+    let prev = iv ? Uint8Array.from(iv) : new Uint8Array(16);
+    const ctr = iv ? Uint8Array.from(iv) : new Uint8Array(16);
+
+    for (let off = 0; off < inp.length; off += 16) {
+      const blk = inp.subarray(off, off + 16);
+      let res, keystream = null;
+      if (mode === "ECB") { res = (op === "enc") ? encBlock(blk, w, Nr) : decBlock(blk, w, Nr); }
+      else if (mode === "CBC") {
+        if (op === "enc") { res = encBlock(xorArr(blk, prev), w, Nr); prev = res; }
+        else { const d = decBlock(blk, w, Nr); res = xorArr(d, prev); prev = Uint8Array.from(blk); }
+      }
+      else if (mode === "CTR") { keystream = encBlock(ctr, w, Nr); res = xorArr(blk, keystream.subarray(0, blk.length)); incCounter(ctr); }
+      else if (mode === "CFB") { keystream = encBlock(prev, w, Nr); res = xorArr(blk, keystream.subarray(0, blk.length)); prev = (op === "enc") ? padTo16(res, blk) : Uint8Array.from(padTo16Src(blk)); }
+      else if (mode === "OFB") { keystream = encBlock(prev, w, Nr); res = xorArr(blk, keystream.subarray(0, blk.length)); prev = keystream; }
+      out.set(res, off);
+      blocks.push({ index: blocks.length, input: Uint8Array.from(blk), output: Uint8Array.from(res) });
+    }
+
+    let finalOut = out;
+    if (op === "dec" && blockBased && padMode === "pkcs7" && out.length) {
+      const p = out[out.length - 1];
+      if (p >= 1 && p <= 16 && p <= out.length) finalOut = out.subarray(0, out.length - p);
+    }
+    return { output: Uint8Array.from(finalOut), blocks };
+  }
+  function padTo16(res, blk) { const o = new Uint8Array(16); o.set(res.subarray(0, Math.min(16, res.length))); return o; }
+  function padTo16Src(blk) { const o = new Uint8Array(16); o.set(blk.subarray(0, Math.min(16, blk.length))); return o; }
+
+  return { run, encBlock, keyExpansion, sbox, inv };
+})();
+
+/* =========================================================================
+   5) Self-test (FIPS-197 + CRC check values)
+   ========================================================================= */
+function selfTest() {
+  const fails = [];
+  const hx = s => parseInput(s, "hex");
+  // AES-128
+  let r = AES.run("enc", "ECB", hx("00112233445566778899aabbccddeeff"), hx("000102030405060708090a0b0c0d0e0f"), null, "none");
+  if (toHexJoined(r.output) !== "69c4e0d86a7b0430d8cdb78070b4c55a") fails.push("AES128");
+  // AES-256
+  r = AES.run("enc", "ECB", hx("00112233445566778899aabbccddeeff"), hx("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"), null, "none");
+  if (toHexJoined(r.output) !== "8ea2b7ca516745bfeafc49904b496089") fails.push("AES256");
+  // AES round-trip CBC
+  const key = hx("2b7e151628aed2a6abf7158809cf4f3c"), iv = hx("000102030405060708090a0b0c0d0e0f");
+  const pt = hx("6bc1bee22e409f96e93d7e117393172a");
+  const c = AES.run("enc", "CBC", pt, key, iv, "none");
+  const d = AES.run("dec", "CBC", c.output, key, iv, "none");
+  if (toHexJoined(d.output) !== toHexJoined(pt)) fails.push("CBC-roundtrip");
+  // CRC check values for "123456789"
+  const msg = new TextEncoder().encode("123456789");
+  const checks = {
+    "CRC-16/CCITT-FALSE": 0x29B1, "CRC-16/XMODEM": 0x31C3, "CRC-16/MODBUS": 0x4B37,
+    "CRC-16/X25": 0x906E, "CRC-32 (zlib/PKZIP)": 0xCBF43926, "CRC-8/SMBUS": 0xF4,
+  };
+  for (const [name, exp] of Object.entries(checks)) {
+    if (crcCompute(msg, CRC_PRESETS[name]) !== (exp >>> 0)) fails.push(name);
+  }
+  return fails;
+}
+
+/* =========================================================================
+   6) i18n + theme
+   ========================================================================= */
+const I18N = {
+  sk: {
+    appTitle: "MSP430FR5969 – Dátový nástroj", appSub: "Base/Base64 · Parita/CRC/Hamming · AES — overenie krokov prenosu",
+    tabPipeline: "Pipeline", tabBase: "Base / kódovanie", tabCrc: "CRC / Parita / Hamming", tabAes: "AES", tabInfo: "MSP430 info",
+    pipeInput: "Vstupné dáta", lblData: "Dáta", lblFormat: "Formát vstupu", parsedBytes: "Parsované bajty",
+    pipeFinal: "Finálny výsledok (na odoslanie)", lblScheme: "Schéma", lblPadding: "Padding", optOn: "Zapnuté (=)", optOff: "Vypnuté",
+    encodedStr: "Zakódovaný reťazec", bytesOfEncoded: "Bajty zakódovaného výstupu", lblPreset: "Preset", lblWidth: "Šírka",
+    result: "výsledok", msgWithCrc: "Správa + pripojený CRC", lblAppendLE: "Pripojiť CRC little-endian",
+    parityTitle: "Parita", lblParityType: "Typ", lblParityMode: "Režim", optPerByte: "Per-bajt (UART)", optWhole: "Cez celú správu",
+    lblHamUnit: "Jednotka", lblOp: "Operácia", optEnc: "Šifrovať", optDec: "Dešifrovať", lblMode: "Režim",
+    lblKeyLen: "Dĺžka kľúča", lblPad: "Padding", optNoPad: "Žiadny (×16)", optZero: "Zero-pad",
+    lblKeyHex: "Kľúč (hex)", lblIvHex: "IV / Nonce (hex)", blocks: "Bloky (16 B)",
+    aesNote: "Pozn.: AES akcelerátor MSP430FR5969 (AESA) robí natívne ECB pre 128/192/256-bit kľúče. CBC/CTR/CFB/OFB sú softvérové nad ECB. Pri zápise do registrov AESA dbaj na poradie bajtov (little-endian).",
+    enToggle: "EN", stEnable: "Zapnuté", stUp: "↑", stDown: "↓", stInput: "Vstup do kroku", stOutput: "Výstup kroku",
+    stageAes: "AES (šifrovanie)", stageCrc: "CRC", stageBase: "Base64", crcAppended: "CRC pripojený k dátam",
+  },
+  en: {
+    appTitle: "MSP430FR5969 – Data Toolkit", appSub: "Base/Base64 · Parity/CRC/Hamming · AES — verify your transmission steps",
+    tabPipeline: "Pipeline", tabBase: "Base / encoding", tabCrc: "CRC / Parity / Hamming", tabAes: "AES", tabInfo: "MSP430 info",
+    pipeInput: "Input data", lblData: "Data", lblFormat: "Input format", parsedBytes: "Parsed bytes",
+    pipeFinal: "Final result (to transmit)", lblScheme: "Scheme", lblPadding: "Padding", optOn: "On (=)", optOff: "Off",
+    encodedStr: "Encoded string", bytesOfEncoded: "Bytes of encoded output", lblPreset: "Preset", lblWidth: "Width",
+    result: "result", msgWithCrc: "Message + appended CRC", lblAppendLE: "Append CRC little-endian",
+    parityTitle: "Parity", lblParityType: "Type", lblParityMode: "Mode", optPerByte: "Per-byte (UART)", optWhole: "Whole message",
+    lblHamUnit: "Unit", lblOp: "Operation", optEnc: "Encrypt", optDec: "Decrypt", lblMode: "Mode",
+    lblKeyLen: "Key length", lblPad: "Padding", optNoPad: "None (×16)", optZero: "Zero-pad",
+    lblKeyHex: "Key (hex)", lblIvHex: "IV / Nonce (hex)", blocks: "Blocks (16 B)",
+    aesNote: "Note: the MSP430FR5969 AES accelerator (AESA) natively does ECB for 128/192/256-bit keys. CBC/CTR/CFB/OFB are software on top of ECB. Mind byte order (little-endian) when writing AESA registers.",
+    enToggle: "SK", stEnable: "Enabled", stUp: "↑", stDown: "↓", stInput: "Stage input", stOutput: "Stage output",
+    stageAes: "AES (encryption)", stageCrc: "CRC", stageBase: "Base64", crcAppended: "CRC appended to data",
+  },
+};
+let LANG = localStorage.getItem("lang") || "sk";
+function t(k) { return (I18N[LANG] && I18N[LANG][k]) || k; }
+function applyI18n() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.getAttribute("data-i18n")); });
+  document.getElementById("langBtn").textContent = t("enToggle");
+  renderInfo();
+  recomputeAll();
+}
+function setTheme(th) {
+  document.documentElement.setAttribute("data-theme", th);
+  localStorage.setItem("theme", th);
+  document.getElementById("themeBtn").textContent = th === "dark" ? "☀︎" : "☾";
+}
+
+/* =========================================================================
+   7) UI wiring
+   ========================================================================= */
+function readField(id) { return document.getElementById(id).value; }
+function hexToBytesSafe(s) { return parseInput(s, "hex"); }
+
+function safe(fn, target) {
+  try { return fn(); }
+  catch (e) { document.getElementById(target).innerHTML = '<div class="err">' + escapeHtml(e.message) + '</div>'; return null; }
+}
+
+/* ---- Base tab ---- */
+function recomputeBase() {
+  const out = document.getElementById("b-encoded");
+  try {
+    const bytes = parseInput(readField("b-input"), readField("b-format"));
+    const enc = baseEncode(bytes, readField("b-scheme"), readField("b-pad") === "on");
+    out.textContent = enc || "(prázdne)";
+    document.getElementById("b-encbytes").innerHTML = tripleView(new TextEncoder().encode(enc));
+  } catch (e) { out.innerHTML = '<span class="err">' + escapeHtml(e.message) + '</span>'; document.getElementById("b-encbytes").innerHTML = ""; }
+}
+
+/* ---- CRC tab ---- */
+function loadCrcPreset() {
+  const p = CRC_PRESETS[readField("crc-preset")];
+  if (!p) return;
+  document.getElementById("crc-width").value = String(p.width);
+  document.getElementById("crc-poly").value = p.poly.toString(16);
+  document.getElementById("crc-init").value = p.init.toString(16);
+  document.getElementById("crc-xor").value = p.xorout.toString(16);
+  document.getElementById("crc-refin").checked = p.refin;
+  document.getElementById("crc-refout").checked = p.refout;
+}
+function currentCrcParams() {
+  return {
+    width: parseInt(readField("crc-width"), 10),
+    poly: parseInt(readField("crc-poly") || "0", 16) >>> 0,
+    init: parseInt(readField("crc-init") || "0", 16) >>> 0,
+    xorout: parseInt(readField("crc-xor") || "0", 16) >>> 0,
+    refin: document.getElementById("crc-refin").checked,
+    refout: document.getElementById("crc-refout").checked,
+  };
+}
+function recomputeCrc() {
+  try {
+    const bytes = parseInput(readField("c-input"), readField("c-format"));
+    document.getElementById("c-parsed").innerHTML = tripleView(bytes);
+    const p = currentCrcParams();
+    const crc = crcCompute(bytes, p);
+    const hexw = (p.width / 4);
+    document.getElementById("crc-out").innerHTML =
+      `<div class="triple"><div class="tline"><span class="tlabel">HEX</span><span class="tval">0x${crc.toString(16).padStart(hexw, "0").toUpperCase()}</span></div>` +
+      `<div class="tline"><span class="tlabel">DEC</span><span class="tval">${crc}</span></div>` +
+      `<div class="tline"><span class="tlabel">BIN</span><span class="tval">${crc.toString(2).padStart(p.width, "0")}</span></div></div>`;
+    const le = document.getElementById("crc-le").checked;
+    const crcBytes = crcToBytes(crc, p.width, le);
+    const combined = new Uint8Array(bytes.length + crcBytes.length);
+    combined.set(bytes); combined.set(crcBytes, bytes.length);
+    document.getElementById("crc-msg").innerHTML = tripleView(combined, [["CRC", toHex(crcBytes) + (le ? "  (LE)" : "  (BE)")]]);
+
+    // parity
+    recomputeParity(bytes);
+    recomputeHamming(bytes);
+  } catch (e) {
+    document.getElementById("c-parsed").innerHTML = '<div class="err">' + escapeHtml(e.message) + '</div>';
+    document.getElementById("crc-out").innerHTML = ""; document.getElementById("crc-msg").innerHTML = "";
+    document.getElementById("par-out").innerHTML = ""; document.getElementById("ham-out").innerHTML = "";
+  }
+}
+function recomputeParity(bytes) {
+  const type = readField("par-type"), mode = readField("par-mode");
+  if (mode === "all") {
+    const pb = parityWhole(bytes, type);
+    document.getElementById("par-out").innerHTML =
+      `<div class="outbox">${type.toUpperCase()} parity (${t("optWhole")}): <span class="bit-p">${pb}</span></div>`;
+  } else {
+    let html = '<table class="blocktbl"><tr><th>#</th><th>Byte</th><th>BIN</th><th>Parity bit</th><th>Byte+P (9b)</th></tr>';
+    Array.from(bytes).forEach((b, i) => {
+      const pb = parityBit(b, type);
+      html += `<tr><td>${i}</td><td>0x${b.toString(16).padStart(2, "0")}</td><td>${b.toString(2).padStart(8, "0")}</td>` +
+        `<td class="bit-p">${pb}</td><td>${b.toString(2).padStart(8, "0")}<span class="bit-p">${pb}</span></td></tr>`;
+    });
+    html += '</table>';
+    document.getElementById("par-out").innerHTML = html;
+  }
+}
+function recomputeHamming(bytes) {
+  const unit = readField("ham-unit"), secded = document.getElementById("ham-secded").checked;
+  let html = '<table class="blocktbl"><tr><th>#</th><th>Data</th><th>Codeword (parity bits highlighted)</th><th>n,r</th></tr>';
+  const units = [];
+  if (unit === "nibble") { Array.from(bytes).forEach(b => { units.push(byteToBits(b >> 4, 4)); units.push(byteToBits(b & 0xF, 4)); }); }
+  else { Array.from(bytes).forEach(b => units.push(byteToBits(b, 8))); }
+  units.forEach((db, i) => {
+    const enc = hammingEncode(db, secded);
+    let cw = "";
+    enc.bits.forEach((bit, idx) => {
+      const pos = idx + 1;
+      const isParity = (pos <= enc.m) && ((pos & (pos - 1)) === 0);
+      const isOverall = secded && idx === enc.bits.length - 1;
+      cw += `<span class="${(isParity || isOverall) ? "bit-p" : "bit-d"}">${bit}</span>`;
+    });
+    html += `<tr><td>${i}</td><td>${db.join("")}</td><td style="font-family:var(--mono)">${cw}</td><td>${enc.n},${enc.r}${secded ? "+1" : ""}</td></tr>`;
+  });
+  html += '</table>';
+  document.getElementById("ham-out").innerHTML = html;
+}
+
+/* ---- AES tab ---- */
+function recomputeAes() {
+  const out = document.getElementById("a-out"), blk = document.getElementById("a-blocks");
+  try {
+    const data = parseInput(readField("a-input"), readField("a-format"));
+    const key = hexToBytesSafe(readField("a-key"));
+    const klen = parseInt(readField("a-keylen"), 10);
+    if (key.length !== klen / 8) throw new Error(`Kľúč musí mať ${klen / 8} B (${klen} bit) / Key must be ${klen / 8} bytes`);
+    const mode = readField("a-mode");
+    const iv = (mode === "ECB") ? null : hexToBytesSafe(readField("a-iv"));
+    if (iv && iv.length !== 16) throw new Error("IV/Nonce musí mať 16 B / IV must be 16 bytes");
+    const op = readField("a-op");
+    const res = AES.run(op, mode, data, key, iv, readField("a-pad"));
+    out.innerHTML = tripleView(res.output, [["B64", base64encode(res.output, B64_STD, true)]]);
+    let html = '<table class="blocktbl"><tr><th>#</th><th>' + t("stInput") + ' (hex)</th><th>' + t("stOutput") + ' (hex)</th></tr>';
+    res.blocks.forEach(b => { html += `<tr><td>${b.index}</td><td>${toHexJoined(b.input)}</td><td>${toHexJoined(b.output)}</td></tr>`; });
+    html += '</table>';
+    blk.innerHTML = html;
+  } catch (e) { out.innerHTML = '<div class="err">' + escapeHtml(e.message) + '</div>'; blk.innerHTML = ""; }
+}
+
+/* ---- Pipeline ---- */
+let pipeStages = [
+  { type: "aes", enabled: false, mode: "ECB", klen: "128", pad: "none", key: "000102030405060708090a0b0c0d0e0f", iv: "00000000000000000000000000000000" },
+  { type: "crc", enabled: true, preset: "MSP430 CRC16 — CRCDI (reflektovaný ≡ MCRF4XX)", le: true },
+  { type: "base", enabled: true, scheme: "base64", pad2: "on" },
+];
+function stageConfigHtml(st, idx) {
+  if (st.type === "aes") {
+    return `<div class="row">
+      <div><label>${t("lblMode")}</label><select data-pl="${idx}.mode">
+        <option value="ECB">ECB</option><option value="CBC">CBC</option><option value="CTR">CTR</option><option value="CFB">CFB</option><option value="OFB">OFB</option></select></div>
+      <div><label>${t("lblKeyLen")}</label><select data-pl="${idx}.klen"><option>128</option><option>192</option><option>256</option></select></div>
+      <div><label>${t("lblPad")}</label><select data-pl="${idx}.pad"><option value="none">${t("optNoPad")}</option><option value="pkcs7">PKCS#7</option><option value="zero">${t("optZero")}</option></select></div>
+      <div style="flex:2;"><label>${t("lblKeyHex")}</label><input type="text" data-pl="${idx}.key" value="000102030405060708090a0b0c0d0e0f"></div>
+      <div style="flex:2;"><label>${t("lblIvHex")}</label><input type="text" data-pl="${idx}.iv" value="00000000000000000000000000000000"></div>
+    </div>`;
+  }
+  if (st.type === "crc") {
+    let opts = Object.keys(CRC_PRESETS).map(k => `<option value="${k}"${k.startsWith("MSP430 CRC16 — CRCDI (") ? " selected" : ""}>${k}</option>`).join("");
+    return `<div class="row">
+      <div style="flex:2;"><label>${t("lblPreset")}</label><select data-pl="${idx}.preset">${opts}</select></div>
+      <div><label class="chk" style="margin-top:24px;"><input type="checkbox" data-pl="${idx}.le" checked> ${t("lblAppendLE")}</label></div>
+    </div>`;
+  }
+  if (st.type === "base") {
+    return `<div class="row">
+      <div><label>${t("lblScheme")}</label><select data-pl="${idx}.scheme"><option value="base64">Base64</option><option value="base64url">Base64 URL-safe</option><option value="base32">Base32</option><option value="base16">Base16/Hex</option></select></div>
+      <div><label>${t("lblPadding")}</label><select data-pl="${idx}.pad2"><option value="on">${t("optOn")}</option><option value="off">${t("optOff")}</option></select></div>
+    </div>`;
+  }
+  return "";
+}
+function stageTitle(type) { return type === "aes" ? t("stageAes") : type === "crc" ? t("stageCrc") : t("stageBase"); }
+function renderPipelineStages() {
+  const host = document.getElementById("pl-stages");
+  let html = "";
+  pipeStages.forEach((st, idx) => {
+    html += `<div class="miniarrow">↓</div>`;
+    html += `<div class="stage ${st.enabled ? "" : "disabled"}">
+      <div class="stage-head">
+        <label class="chk"><input type="checkbox" data-plen="${idx}" ${st.enabled ? "checked" : ""}> ${t("stEnable")}</label>
+        <span class="title">${stageTitle(st.type)}</span>
+        <span class="spacer"></span>
+        <button class="copybtn" data-plmove="${idx}:-1">${t("stUp")}</button>
+        <button class="copybtn" data-plmove="${idx}:1">${t("stDown")}</button>
+      </div>
+      <div class="stage-body">
+        ${stageConfigHtml(st, idx)}
+        <h3>${t("stInput")}</h3><div data-plin="${idx}"></div>
+        <h3>${t("stOutput")}</h3><div data-plout="${idx}"></div>
+      </div>
+    </div>`;
+  });
+  host.innerHTML = html;
+  // restore saved config values
+  pipeStages.forEach((st, idx) => {
+    Object.keys(st).forEach(key => {
+      if (key === "type" || key === "enabled") return;
+      const el = host.querySelector(`[data-pl="${idx}.${key}"]`);
+      if (el) { if (el.type === "checkbox") el.checked = st[key]; else el.value = st[key]; }
+    });
+  });
+  // wire config inputs
+  host.querySelectorAll("[data-pl]").forEach(el => {
+    el.addEventListener("input", () => {
+      const [i, key] = el.getAttribute("data-pl").split(".");
+      pipeStages[i][key] = (el.type === "checkbox") ? el.checked : el.value;
+      recomputePipeline();
+    });
+  });
+  host.querySelectorAll("[data-plen]").forEach(el => {
+    el.addEventListener("change", () => { pipeStages[el.getAttribute("data-plen")].enabled = el.checked; renderPipelineStages(); recomputePipeline(); });
+  });
+  host.querySelectorAll("[data-plmove]").forEach(el => {
+    el.addEventListener("click", () => {
+      const [i, d] = el.getAttribute("data-plmove").split(":").map(Number);
+      const j = i + d;
+      if (j < 0 || j >= pipeStages.length) return;
+      [pipeStages[i], pipeStages[j]] = [pipeStages[j], pipeStages[i]];
+      renderPipelineStages(); recomputePipeline();
+    });
+  });
+}
+function applyStage(st, bytes) {
+  if (st.type === "aes") {
+    const key = parseInput(st.key || "", "hex");
+    const klen = parseInt(st.klen || "128", 10);
+    if (key.length !== klen / 8) throw new Error(`AES: kľúč ${klen / 8} B`);
+    const mode = st.mode || "ECB";
+    const iv = mode === "ECB" ? null : parseInput(st.iv || "", "hex");
+    if (iv && iv.length !== 16) throw new Error("AES: IV 16 B");
+    const r = AES.run("enc", mode, bytes, key, iv, st.pad || "none");
+    return { out: r.output };
+  }
+  if (st.type === "crc") {
+    const p = CRC_PRESETS[st.preset || "MSP430 CRC16 — CRCDI (reflektovaný ≡ MCRF4XX)"];
+    const crc = crcCompute(bytes, p);
+    const le = st.le !== false;
+    const crcBytes = crcToBytes(crc, p.width, le);
+    const out = new Uint8Array(bytes.length + crcBytes.length);
+    out.set(bytes); out.set(crcBytes, bytes.length);
+    return { out, extra: [["CRC", "0x" + crc.toString(16).padStart(p.width / 4, "0").toUpperCase() + (le ? " (LE)" : " (BE)")]] };
+  }
+  if (st.type === "base") {
+    const enc = baseEncode(bytes, st.scheme || "base64", (st.pad2 || "on") === "on");
+    return { out: new TextEncoder().encode(enc), extra: [["STR", enc]] };
+  }
+  return { out: bytes };
+}
+function recomputePipeline() {
+  const host = document.getElementById("pl-stages");
+  let bytes;
+  try { bytes = parseInput(readField("pl-input"), readField("pl-format")); }
+  catch (e) { document.getElementById("pl-parsed").innerHTML = '<div class="err">' + escapeHtml(e.message) + '</div>'; return; }
+  document.getElementById("pl-parsed").innerHTML = tripleView(bytes);
+  let cur = bytes;
+  pipeStages.forEach((st, idx) => {
+    const inEl = host.querySelector(`[data-plin="${idx}"]`);
+    const outEl = host.querySelector(`[data-plout="${idx}"]`);
+    if (!inEl || !outEl) return;
+    if (!st.enabled) { inEl.innerHTML = '<span class="muted">— ' + (LANG === "sk" ? "krok vypnutý" : "stage disabled") + ' —</span>'; outEl.innerHTML = ""; return; }
+    inEl.innerHTML = tripleView(cur);
+    try {
+      const r = applyStage(st, cur);
+      outEl.innerHTML = tripleView(r.out, r.extra);
+      cur = r.out;
+    } catch (e) { outEl.innerHTML = '<div class="err">' + escapeHtml(e.message) + '</div>'; }
+  });
+  document.getElementById("pl-final").innerHTML = tripleView(cur, [["B64", base64encode(cur, B64_STD, true)]]);
+}
+
+/* ---- info tab ---- */
+function renderInfo() {
+  const sk = LANG === "sk";
+  document.getElementById("info-card").innerHTML = sk ? `
+    <h2>MSP430FR5969 – relevantné periférie</h2>
+    <h3>CRC16 modul</h3>
+    <p>Implementuje <b>CRC-CCITT</b>, polynóm <code class="k">0x1021</code>. Seed sa zapisuje do <code class="k">CRCINIRES</code> (typicky <code class="k">0xFFFF</code>).
+    Dáta sa vkladajú cez <code class="k">CRCDI</code> (LSB-first, reflektovaný vstup) alebo <code class="k">CRCDIRB</code> (reverzné poradie bitov).</p>
+    <ul>
+      <li><code class="k">CRCDI</code> ⇒ ekvivalent <b>CRC-16/MCRF4XX</b> (refin=true, refout=true, init=0xFFFF, xorout=0).</li>
+      <li><code class="k">CRCDIRB</code> ⇒ ekvivalent <b>CRC-16/CCITT-FALSE</b> (refin=false, refout=false, init=0xFFFF, xorout=0).</li>
+    </ul>
+    <p>Tieto presety nájdeš v záložke CRC; výsledok si vieš krížovo overiť aj na crccalc.com.</p>
+    <h3>AES akcelerátor (AESA)</h3>
+    <p>Natívne <b>ECB</b> pre kľúče <b>128/192/256</b> bit (samostatné šifrovanie aj dešifrovanie). CBC/CTR/CFB/OFB rieši TI softvérovo nad ECB blokom.
+    Pri zápise do registrov AESA dbaj na poradie bajtov (čip je <b>little-endian</b>).</p>
+    <h3>UART (eUSCI_A)</h3>
+    <p>Podporuje paritu <b>even/odd</b> (per-bajt) — viď záložka Parita, režim „Per-bajt (UART)“.</p>
+    <h3>Endianness</h3>
+    <p>MSP430 je <b>little-endian</b> — pri pripájaní viacbajtového CRC k správe je default little-endian (prepínateľné).</p>
+  ` : `
+    <h2>MSP430FR5969 – relevant peripherals</h2>
+    <h3>CRC16 module</h3>
+    <p>Implements <b>CRC-CCITT</b>, polynomial <code class="k">0x1021</code>. Seed is written to <code class="k">CRCINIRES</code> (typically <code class="k">0xFFFF</code>).
+    Data is fed via <code class="k">CRCDI</code> (LSB-first, reflected input) or <code class="k">CRCDIRB</code> (bit-reversed).</p>
+    <ul>
+      <li><code class="k">CRCDI</code> ⇒ equals <b>CRC-16/MCRF4XX</b> (refin=true, refout=true, init=0xFFFF, xorout=0).</li>
+      <li><code class="k">CRCDIRB</code> ⇒ equals <b>CRC-16/CCITT-FALSE</b> (refin=false, refout=false, init=0xFFFF, xorout=0).</li>
+    </ul>
+    <p>Both presets are in the CRC tab; cross-check with crccalc.com.</p>
+    <h3>AES accelerator (AESA)</h3>
+    <p>Native <b>ECB</b> for <b>128/192/256</b>-bit keys (separate encrypt/decrypt). CBC/CTR/CFB/OFB are TI software on top of the ECB block.
+    Mind byte order (the chip is <b>little-endian</b>) when writing AESA registers.</p>
+    <h3>UART (eUSCI_A)</h3>
+    <p>Supports <b>even/odd</b> parity (per byte) — see the Parity tab, "Per-byte (UART)" mode.</p>
+    <h3>Endianness</h3>
+    <p>MSP430 is <b>little-endian</b> — appending multi-byte CRC defaults to little-endian (toggleable).</p>
+  `;
+}
+
+/* ---- global recompute & init ---- */
+function recomputeAll() {
+  recomputeBase();
+  recomputeCrc();
+  recomputeAes();
+  recomputePipeline();
+}
+function initEvents() {
+  document.querySelectorAll("nav.tabs button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tabpane").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.getAttribute("data-tab")).classList.add("active");
+    });
+  });
+  ["b-input", "b-format", "b-scheme", "b-pad"].forEach(id => document.getElementById(id).addEventListener("input", recomputeBase));
+  ["c-input", "c-format", "crc-width", "crc-poly", "crc-init", "crc-xor", "crc-refin", "crc-refout", "crc-le", "par-type", "par-mode", "ham-unit", "ham-secded"].forEach(id => document.getElementById(id).addEventListener("input", recomputeCrc));
+  document.getElementById("crc-preset").addEventListener("change", () => { loadCrcPreset(); recomputeCrc(); });
+  ["a-op", "a-mode", "a-keylen", "a-pad", "a-input", "a-format", "a-key", "a-iv"].forEach(id => document.getElementById(id).addEventListener("input", recomputeAes));
+  ["pl-input", "pl-format"].forEach(id => document.getElementById(id).addEventListener("input", recomputePipeline));
+  document.getElementById("langBtn").addEventListener("click", () => { LANG = LANG === "sk" ? "en" : "sk"; localStorage.setItem("lang", LANG); renderPipelineStages(); applyI18n(); });
+  document.getElementById("themeBtn").addEventListener("click", () => { const cur = document.documentElement.getAttribute("data-theme"); setTheme(cur === "dark" ? "light" : "dark"); });
+}
+function initCrcPresets() {
+  const sel = document.getElementById("crc-preset");
+  sel.innerHTML = Object.keys(CRC_PRESETS).map(k => `<option value="${k}">${k}</option>`).join("");
+  sel.value = "MSP430 CRC16 — CRCDI (reflektovaný ≡ MCRF4XX)";
+  loadCrcPreset();
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  setTheme(localStorage.getItem("theme") || "dark");
+  initCrcPresets();
+  initEvents();
+  renderPipelineStages();
+  applyI18n();
+  // self-test
+  const st = document.getElementById("selftest");
+  try {
+    const fails = selfTest();
+    if (fails.length === 0) { st.textContent = "self-test ✓"; st.className = "ok"; }
+    else { st.textContent = "self-test ✗ " + fails.join(","); st.className = "fail"; }
+  } catch (e) { st.textContent = "self-test error"; st.className = "fail"; }
+});
+</script>
+</body>
+</html>
